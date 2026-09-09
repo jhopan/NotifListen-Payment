@@ -2,7 +2,7 @@
 
 Aplikasi Android ringan (zero dependency) yang menangkap **notifikasi pembayaran** dari app e-wallet/bank (mis. GoPay Merchant), mem-parsing nominalnya, menyimpan ke outbox SQLite, dan mengirim ke server payment gateway.
 
-Pasangan server-nya: [Paypan-Server](https://github.com/jhopan/Paypan-Server) — baca README di sana untuk arsitektur lengkap.
+Pasangan server-nya: [PayPan](https://github.com/jhopan/PayPan) — dokumentasi API integrator ada di [PayPan/API.md](https://github.com/jhopan/PayPan/blob/master/API.md).
 
 ## Cara kerja
 
