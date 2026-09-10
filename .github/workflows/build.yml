@@ -47,8 +47,8 @@ jobs:
 
       - name: Verify signature
         run: |
-          SDK.BuildTools=$(ls /usr/local/lib/android/sdk/build-tools/ | tail -1)
-          /usr/local/lib/android/sdk/build-tools/$SDK.BuildTools/apksigner verify --print-certs app/build/outputs/apk/release/app-universal-release.apk | head -4
+          BT=$(ls /usr/local/lib/android/sdk/build-tools/ | tail -1)
+          /usr/local/lib/android/sdk/build-tools/$BT/apksigner verify --print-certs app/build/outputs/apk/release/app-universal-release.apk | head -4
 
       - name: Collect APKs with clean names
         run: |
