@@ -1,4 +1,4 @@
-name: Build APK
+name: Build & Release
 
 on:
   push:
@@ -31,11 +31,32 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+      - name: Build (debug + release, split per ABI)
+        run: |
+          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
 
-      - name: Copy APK with fixed name
-        run: cp app/build/outputs/apk/debug/app-debug.apk NotifListen-Payment.apk
+      - name: Collect APKs with clean names
+        run: |
+          mkdir -p dist
+          V=$(grep -oP 'versionName "\K[^"]+' app/build.gradle)
+          for f in app/build/outputs/apk/debug/*.apk; do
+            base=$(basename "$f")
+            case "$base" in
+              *arm64-v8a*)  arch="v8a" ;;
+              *armeabi-v7a*) arch="v7a" ;;
+              *universal*)  arch="universal" ;;
+              *) arch="unknown" ;;
+            esac
+            cp "$f" "dist/NotifListen-Payment-v${V}-${arch}.apk"
+          done
+          ls -la dist/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-all
+          path: dist/*.apk
 
       - name: Delete old rolling release
         run: gh release delete latest --yes || true
@@ -47,7 +68,38 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create release
-        run: gh release create latest NotifListen-Payment.apk --title "NotifListen-Payment (latest)" --notes "Build otomatis dari commit ${{ github.sha }}. Debug-signed." --latest
+      - name: Create rolling release (latest)
+        run: |
+          V=$(grep -oP 'versionName "\K[^"]+' app/build.gradle)
+          gh release create latest dist/*.apk \
+            --title "NotifListen-Payment v${V} (latest)" \
+            --notes "$(cat <<'EOF'
+          ## NotifListen-Payment (build terbaru)
+
+          Pilih APK sesuai HP:
+
+          | File | Untuk HP |
+          |---|---|
+          | `*-universal.apk` | Semua HP (rekomendasi) |
+          | `*-v7a.apk` | HP lama 32-bit (armeabi-v7a) |
+          | `*-v8a.apk` | HP baru 64-bit (arm64-v8a) |
+
+          ### Fitur
+          - Menangkap notifikasi pembayaran e-wallet (GoPay Merchant, BCA, BRI, DANA, dll)
+          - Filter non-pembayaran: pencairan dana/topup/refund tidak dihitung
+          - Parser nominal Indonesia: `Rp18.017` → 18017, `Rp 5.000,50` → 5000
+          - Outbox SQLite + retry cerdas (gagal jaringan tidak memakan attempt)
+          - Watchdog listener + auto-rebind + jalan otomatis saat HP dinyalakan
+
+          ### Instalasi
+          1. Download APK sesuai HP (universal = paling aman)
+          2. Install (izinkan sumber tidak dikenal)
+          3. Buka app → aktifkan izin notifikasi
+          4. Matikan optimasi baterai (penting di Xiaomi/vivo/Oppo)
+          5. Isi URL server + token, klik TEST
+
+          Debug-signed. Jangan share APK ke publik sebelum release signed.
+          EOF
+          )" --latest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
