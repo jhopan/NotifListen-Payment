@@ -7,3 +7,6 @@ captures/
 .externalNativeBuild/
 .cxx/
 *.apk.idsig
+*.jks
+*.b64
+keystore.properties

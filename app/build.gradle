@@ -7,6 +7,25 @@ android {
     namespace 'id.jhopanstore.notiflisten'
     compileSdk 35
 
+    // release signing: keystore.properties (lokal) atau GitHub Secrets (CI)
+    def keystoreProps = new Properties()
+    def keystorePropsFile = rootProject.file("keystore.properties")
+    if (keystorePropsFile.exists()) {
+        keystoreProps.load(new FileInputStream(keystorePropsFile))
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                // storeFile relatif ke rootProject (bukan app/)
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
     defaultConfig {
         applicationId "id.jhopanstore.notiflisten"
         minSdk 24
@@ -29,6 +48,9 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            if (keystorePropsFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     compileOptions {
